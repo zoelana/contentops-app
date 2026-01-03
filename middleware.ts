@@ -1,47 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createMiddlewareClient } from '@/lib/supabase/middleware';
+import { createMiddlewareClient } from '@supabase/ssr';
 
-const PUBLIC_FILE = /\.(.*)$/;
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-function isAllowedPath(pathname: string): boolean {
-  if (pathname.startsWith('/auth/')) return true;
-  if (pathname.startsWith('/api/')) return true;
-  if (pathname.startsWith('/_next/')) return true;
-  if (pathname === '/favicon.ico') return true;
-  if (PUBLIC_FILE.test(pathname)) return true;
-  return false;
-}
-
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (isAllowedPath(pathname)) {
-    // Still refresh session cookies if needed (non-mutating for public routes)
-    const { response } = await createMiddlewareClient(request);
-    return response;
+  // Allow public paths
+  if (
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next();
   }
 
-  const { supabase, response, cookiesToSet } = await createMiddlewareClient(request);
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req, res });
+
   const {
-    data: { session }
+    data: { session },
   } = await supabase.auth.getSession();
 
   if (!session) {
-    const loginUrl = request.nextUrl.clone();
+    const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/auth/login';
-    loginUrl.searchParams.set('redirectedFrom', pathname);
-
-    const redirectResponse = NextResponse.redirect(loginUrl);
-    // Forward any cookies Supabase wanted to set on this request.
-    cookiesToSet.forEach((c) => {
-      redirectResponse.cookies.set(c.name, c.value, c.options);
-    });
-    return redirectResponse;
+    return NextResponse.redirect(loginUrl);
   }
 
-  return response;
+  return res;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image).*)']
+  matcher: '/:path*',
 };
