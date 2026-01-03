@@ -1,34 +1,30 @@
+import { createServerClient as createSSRServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
-import { getSupabaseEnv } from '@/lib/supabase/env';
+import { env } from './env';
 
-export type TypedSupabaseClient = SupabaseClient<Database>;
-
-type CookieToSet = { name: string; value: string; options: CookieOptions };
-
-/**
- * Server Components: cookie writes may throw. We catch & ignore writes here.
- */
-export async function createServerSupabaseClient(): Promise<TypedSupabaseClient> {
+export async function createServerClient() {
   const cookieStore = await cookies();
-  const { url, anonKey } = getSupabaseEnv();
 
-  return createServerClient<Database>(url, anonKey, {
+  return createSSRServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
+      get(name: string) {
+        return cookieStore.get(name)?.value;
       },
-      setAll(cookiesToSet: CookieToSet[]) {
+      set(name: string, value: string, options: CookieOptions) {
+        // Server Components may throw on cookie writes; ignore safely.
         try {
-          cookiesToSet.forEach((cookie) => {
-            cookieStore.set(cookie.name, cookie.value, cookie.options);
-          });
+          cookieStore.set({ name, value, ...options });
         } catch {
-          // Server Components may not set cookies.
+          // ignore
         }
-      }
-    }
+      },
+      remove(name: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+        } catch {
+          // ignore
+        }
+      },
+    },
   });
 }
