@@ -31,14 +31,7 @@ export interface Database {
           owner_id?: string;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: 'organisations_owner_id_fkey';
-            columns: ['owner_id'];
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          }
-        ];
+        Relationships: [];
       };
 
       organisation_members: {
@@ -63,20 +56,38 @@ export interface Database {
           role?: 'owner' | 'admin' | 'member';
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: 'organisation_members_organisation_id_fkey';
-            columns: ['organisation_id'];
-            referencedRelation: 'organisations';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'organisation_members_user_id_fkey';
-            columns: ['user_id'];
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          }
-        ];
+        Relationships: [];
+      };
+
+      content_items: {
+        Row: {
+          id: string;
+          organisation_id: string;
+          idea_id: string | null;
+          body: string;
+          metadata: Json;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organisation_id: string;
+          idea_id?: string | null;
+          body: string;
+          metadata?: Json;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organisation_id?: string;
+          idea_id?: string | null;
+          body?: string;
+          metadata?: Json;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
       };
     };
 
@@ -85,4 +96,3 @@ export interface Database {
     Enums: {};
     CompositeTypes: {};
   };
-}
