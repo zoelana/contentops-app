@@ -2,28 +2,29 @@
 
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
-import { getSupabaseEnv } from '@/lib/supabase/env';
 
-export type TypedSupabaseClient = SupabaseClient<Database>;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-type CookieToSet = { name: string; value: string; options: CookieOptions };
-
-export async function createActionSupabaseClient(): Promise<TypedSupabaseClient> {
+export async function createActionSupabaseClient() {
   const cookieStore = await cookies();
-  const { url, anonKey } = getSupabaseEnv();
 
-  return createServerClient<Database>(url, anonKey, {
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
+      get(name: string) {
+        return cookieStore.get(name)?.value;
       },
-      setAll(cookiesToSet: CookieToSet[]) {
-        cookiesToSet.forEach((cookie) => {
-          cookieStore.set(cookie.name, cookie.value, cookie.options);
-        });
-      }
-    }
+      set(name: string, value: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value, ...options });
+        } catch {}
+      },
+      remove(name: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+        } catch {}
+      },
+    },
   });
 }
