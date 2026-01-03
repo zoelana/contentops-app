@@ -2,45 +2,43 @@
 
 import { redirect } from 'next/navigation';
 import { createActionSupabaseClient } from '@/lib/supabase/actions';
+import { requireUser } from '@/lib/auth';
 
-export async function createOrganisation(formData: FormData): Promise<void> {
-  const nameRaw = formData.get('name');
-  const timezoneRaw = formData.get('timezone');
-
-  const name = typeof nameRaw === 'string' ? nameRaw.trim() : '';
-  const timezone = typeof timezoneRaw === 'string' ? timezoneRaw.trim() : 'Australia/Sydney';
+export async function createOrganisation(formData: FormData) {
+  const name = String(formData.get('name') || '').trim();
+  const timezone = String(formData.get('timezone') || 'Australia/Sydney');
 
   if (!name) {
-    redirect('/org/create?error=missing_name');
+    throw new Error('Organisation name is required');
   }
 
   const supabase = await createActionSupabaseClient();
-  const {
-    data: { session }
-  } = await supabase.auth.getSession();
+  const user = await requireUser();
 
-  if (!session) {
-    redirect('/auth/login');
-  }
-
-  const { data: org, error: orgError } = await supabase
+  const { data: org, error } = await supabase
     .from('organisations')
-    .insert({ name, timezone, owner_id: session.user.id })
+    .insert({
+      name,
+      timezone,
+      owner_id: user.id,
+    })
     .select('id')
     .single();
 
-  if (orgError || !org) {
-    redirect(`/org/create?error=${encodeURIComponent(orgError?.message ?? 'org_create_failed')}`);
+  if (error || !org) {
+    throw new Error(error?.message ?? 'Failed to create organisation');
   }
 
-  const { error: memberError } = await supabase.from('organisation_members').insert({
-    organisation_id: org.id,
-    user_id: session.user.id,
-    role: 'owner'
-  });
+  const { error: memberError } = await supabase
+    .from('organisation_members')
+    .insert({
+      organisation_id: org.id,
+      user_id: user.id,
+      role: 'owner',
+    });
 
   if (memberError) {
-    redirect(`/org/create?error=${encodeURIComponent(memberError.message)}`);
+    throw new Error(memberError.message);
   }
 
   redirect(`/org/${org.id}`);
