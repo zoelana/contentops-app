@@ -27,4 +27,17 @@ export async function getActiveOrganisationId(): Promise<string> {
   const supabase = await createServerSupabaseClient();
   const user = await requireUser();
 
-  const { da
+  const { data: membership } = await supabase
+    .from('organisation_members')
+    .select('organisation_id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (!membership) {
+    redirect('/org/create');
+  }
+
+  return membership.organisation_id;
+}
