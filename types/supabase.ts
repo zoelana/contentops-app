@@ -13,25 +13,34 @@ export interface Database {
         Row: {
           id: string;
           name: string;
-          owner_id: string;
           timezone: string;
+          owner_id: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
-          owner_id: string;
           timezone?: string;
+          owner_id: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
-          owner_id?: string;
           timezone?: string;
+          owner_id?: string;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'organisations_owner_id_fkey';
+            columns: ['owner_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
       };
+
       organisation_members: {
         Row: {
           id: string;
@@ -54,40 +63,26 @@ export interface Database {
           role?: 'owner' | 'admin' | 'member';
           created_at?: string;
         };
-      };
-      content_items: {
-        Row: {
-          id: string;
-          organisation_id: string;
-          idea_id: string | null;
-          body: string;
-          metadata: Json;
-          status: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organisation_id: string;
-          idea_id?: string | null;
-          body: string;
-          metadata?: Json;
-          status?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          organisation_id?: string;
-          idea_id?: string | null;
-          body?: string;
-          metadata?: Json;
-          status?: string;
-          created_at?: string;
-        };
+        Relationships: [
+          {
+            foreignKeyName: 'organisation_members_organisation_id_fkey';
+            columns: ['organisation_id'];
+            referencedRelation: 'organisations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'organisation_members_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+
+    Views: {};
+    Functions: {};
+    Enums: {};
+    CompositeTypes: {};
   };
 }
