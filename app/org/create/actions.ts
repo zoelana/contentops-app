@@ -17,11 +17,13 @@ export async function createOrganisation(formData: FormData) {
 
   const { data: org, error } = await supabase
     .from('organisations')
-    .insert({
-      name,
-      timezone,
-      owner_id: user.id,
-    })
+    .insert([
+      {
+        name,
+        timezone,
+        owner_id: user.id,
+      },
+    ])
     .select('id')
     .single();
 
@@ -31,11 +33,13 @@ export async function createOrganisation(formData: FormData) {
 
   const { error: memberError } = await supabase
     .from('organisation_members')
-    .insert({
-      organisation_id: org.id,
-      user_id: user.id,
-      role: 'owner',
-    });
+    .insert([
+      {
+        organisation_id: org.id,
+        user_id: user.id,
+        role: 'owner',
+      },
+    ]);
 
   if (memberError) {
     throw new Error(memberError.message);
