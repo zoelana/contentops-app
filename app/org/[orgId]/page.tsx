@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 type OrgRow = {
   id: string;
@@ -15,7 +15,7 @@ export default async function OrgPage({
 }) {
   const { orgId } = await params;
 
-  const supabase = await createServerClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: org, error } = await supabase
     .from('organisations')
