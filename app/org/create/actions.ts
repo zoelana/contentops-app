@@ -5,8 +5,8 @@ import { createActionSupabaseClient } from '@/lib/supabase/actions';
 import { requireUser } from '@/lib/auth';
 import type { Database } from '@/types/supabase';
 
-type OrgRow = Database['public']['Tables']['organisations']['Row'];
-type MemberRow = Database['public']['Tables']['organisation_members']['Row'];
+type OrgInsert = Database['public']['Tables']['organisations']['Insert'];
+type MemberInsert = Database['public']['Tables']['organisation_members']['Insert'];
 
 export async function createOrganisation(formData: FormData) {
   const name = String(formData.get('name') || '').trim();
@@ -19,17 +19,15 @@ export async function createOrganisation(formData: FormData) {
   const supabase = await createActionSupabaseClient();
   const user = await requireUser();
 
+  const orgInsert: OrgInsert = {
+    name,
+    timezone,
+    owner_id: user.id,
+  };
+
   const { data: org, error } = await supabase
-    .from<OrgRow>('organisations')
-    .insert([
-      {
-        name,
-        timezone,
-        owner_id: user.id,
-        created_at: new Date().toISOString(),
-        id: crypto.randomUUID(),
-      },
-    ])
+    .from('organisations')
+    .insert([orgInsert])
     .select('id')
     .single();
 
@@ -37,17 +35,15 @@ export async function createOrganisation(formData: FormData) {
     throw new Error(error?.message ?? 'Failed to create organisation');
   }
 
+  const memberInsert: MemberInsert = {
+    organisation_id: org.id,
+    user_id: user.id,
+    role: 'owner',
+  };
+
   const { error: memberError } = await supabase
-    .from<MemberRow>('organisation_members')
-    .insert([
-      {
-        organisation_id: org.id,
-        user_id: user.id,
-        role: 'owner',
-        created_at: new Date().toISOString(),
-        id: crypto.randomUUID(),
-      },
-    ]);
+    .from('organisation_members')
+    .insert([memberInsert]);
 
   if (memberError) {
     throw new Error(memberError.message);
