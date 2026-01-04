@@ -3,6 +3,10 @@
 import { redirect } from 'next/navigation';
 import { createActionSupabaseClient } from '@/lib/supabase/actions';
 import { requireUser } from '@/lib/auth';
+import type { Database } from '@/types/supabase';
+
+type OrgRow = Database['public']['Tables']['organisations']['Row'];
+type MemberRow = Database['public']['Tables']['organisation_members']['Row'];
 
 export async function createOrganisation(formData: FormData) {
   const name = String(formData.get('name') || '').trim();
@@ -16,12 +20,14 @@ export async function createOrganisation(formData: FormData) {
   const user = await requireUser();
 
   const { data: org, error } = await supabase
-    .from('organisations')
+    .from<OrgRow>('organisations')
     .insert([
       {
         name,
         timezone,
         owner_id: user.id,
+        created_at: new Date().toISOString(),
+        id: crypto.randomUUID(),
       },
     ])
     .select('id')
@@ -32,12 +38,14 @@ export async function createOrganisation(formData: FormData) {
   }
 
   const { error: memberError } = await supabase
-    .from('organisation_members')
+    .from<MemberRow>('organisation_members')
     .insert([
       {
         organisation_id: org.id,
         user_id: user.id,
         role: 'owner',
+        created_at: new Date().toISOString(),
+        id: crypto.randomUUID(),
       },
     ]);
 
